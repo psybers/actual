@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
+import { useSyncedPref } from '@desktop-client/hooks/useSyncedPref';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
@@ -35,6 +36,7 @@ export function CategoryAutocompleteModal({
 }: CategoryAutocompleteModalProps) {
   const { t } = useTranslation();
   const { isNarrowWidth } = useResponsive();
+  const [budgetType] = useSyncedPref('budgetType');
 
   const defaultAutocompleteProps = {
     containerProps: { style: { height: isNarrowWidth ? '90vh' : 275 } },
@@ -96,7 +98,13 @@ export function CategoryAutocompleteModal({
                   showSplitOption={false}
                   onClose={close}
                   {...defaultAutocompleteProps}
-                  onSelect={onSelect}
+                  onSelect={value => {
+                    if (budgetType === 'tracking') {
+                      // Do nothing for tracking budgets
+                      return;
+                    }
+                    onSelect?.(value);
+                  }}
                   categoryGroups={categoryGroups}
                   showHiddenCategories={showHiddenCategories}
                   value={null}

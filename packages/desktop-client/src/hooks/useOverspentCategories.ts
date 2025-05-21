@@ -18,7 +18,16 @@ export function useOverspentCategories({ month }: UseOverspentCategoriesProps) {
   const spreadsheet = useSpreadsheet();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
-  const { list: categories } = useCategories();
+  const { list: allCategories } = useCategories();
+
+  const categories = useMemo(() => {
+    if (budgetType === 'tracking') {
+      return allCategories.filter(
+        category => !category.hidden && !category.is_income,
+      );
+    }
+    return allCategories;
+  }, [allCategories, budgetType]);
 
   const categoryBalanceBindings = useMemo(
     () =>

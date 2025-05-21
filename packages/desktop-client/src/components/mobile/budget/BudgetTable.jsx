@@ -637,7 +637,7 @@ function OverspendingBanner({ month, onBudgetAction, ...props }) {
             title: t('Cover overspending'),
             month,
             categoryGroups: categoryGroupsToShow,
-            showHiddenCategories: true,
+            showHiddenCategories: false,
             onSelect: onOpenCoverCategoryModal,
             clearOnSelect: true,
             closeOnSelect: false,
@@ -677,7 +677,7 @@ function OverspendingBanner({ month, onBudgetAction, ...props }) {
             </Text>
           </View>
           <Button onPress={onOpenCategorySelectionModal} style={PILL_STYLE}>
-            <Trans>Cover</Trans>
+            <Trans>Info</Trans>
           </Button>
         </View>
       </Banner>

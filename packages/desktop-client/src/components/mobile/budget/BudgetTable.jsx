@@ -568,7 +568,7 @@ function OverbudgetedBanner({ month, onBudgetAction, ...props }) {
   );
 }
 
-function OverspendingBanner({ month, onBudgetAction, ...props }) {
+function OverspendingBanner({ month, onBudgetAction, budgetType, ...props }) {
   const { t } = useTranslation();
 
   const { list: categories, grouped: categoryGroups } = useCategories();
@@ -677,7 +677,11 @@ function OverspendingBanner({ month, onBudgetAction, ...props }) {
             </Text>
           </View>
           <Button onPress={onOpenCategorySelectionModal} style={PILL_STYLE}>
-            <Trans>Info</Trans>
+            {budgetType === 'tracking' ? (
+              <Trans>Info</Trans>
+            ) : (
+              <Trans>Cover</Trans>
+            )}
           </Button>
         </View>
       </Banner>
@@ -695,7 +699,11 @@ function Banners({ month, onBudgetAction }) {
       style={{ backgroundColor: theme.mobilePageBackground }}
     >
       <UncategorizedTransactionsBanner />
-      <OverspendingBanner month={month} onBudgetAction={onBudgetAction} />
+      <OverspendingBanner
+        month={month}
+        onBudgetAction={onBudgetAction}
+        budgetType={budgetType}
+      />
       {budgetType === 'envelope' && (
         <OverbudgetedBanner month={month} onBudgetAction={onBudgetAction} />
       )}

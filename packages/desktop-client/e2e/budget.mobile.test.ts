@@ -392,6 +392,126 @@ budgetTypes.forEach(budgetType => {
         );
         await expect(page).toMatchThemeScreenshots();
       });
+
+      test.describe('Envelope Budget Overspending Banner', () => {
+        const ACCOUNT_NAME = 'Checking';
+        const OVERSPENT_EXPENSE_CAT = 'Food';
+
+        async function setupOverspentCategory() {
+          // Create an account
+          await page.evaluate(
+            async ({ accountName }) => {
+              const बजट = window.Actual.getBudgetAPI();
+              await बजट.createAccount({
+                name: accountName,
+                balance: 0,
+              });
+            },
+            { accountName: ACCOUNT_NAME },
+          );
+          const accountsPage = await navigation.goToAccountPage(ACCOUNT_NAME);
+          await accountsPage.closeOnboardingMessages();
+
+          // Create category (use existing 'Food' or create if not present)
+          await page.evaluate(
+            async ({ categoryName }) => {
+              const बजट = window.Actual.getBudgetAPI();
+              let categories = await बजट.getCategories();
+              let cat = categories.find(c => c.name === categoryName);
+              if (!cat) {
+                const existingGroups = await बजट.getCategoryGroups();
+                let expenseGroupId = existingGroups.find(g => !g.is_income)?.id;
+                if (!expenseGroupId) {
+                  expenseGroupId = await बजट.createCategoryGroup({
+                    name: 'Expenses',
+                    is_income: false,
+                  });
+                }
+                await बजट.createCategory({
+                  name: categoryName,
+                  group_id: expenseGroupId,
+                  is_income: false,
+                  hidden: false,
+                });
+                categories = await बजट.getCategories();
+                cat = categories.find(c => c.name === categoryName);
+              }
+              // Ensure it's budgeted to 0 initially for easy overspending
+              const currentMonth = monthUtils.currentMonth();
+              await बजट.setBudgetAmount(cat.id, currentMonth, 0);
+              // Ensure no carryover
+              await बजट.setCategoryCarryover(cat.id, currentMonth, false);
+            },
+            { categoryName: OVERSPENT_EXPENSE_CAT },
+          );
+
+          // Add transaction to make category overspent
+          await page.evaluate(
+            async ({ accountName, categoryName, amount, date }) => {
+              const बजट = window.Actual.getBudgetAPI();
+              const accounts = await बजट.getAccounts();
+              const accountId = accounts.find(a => a.name === accountName)?.id;
+              if (!accountId) throw new Error('Account not found for transaction');
+              const categories = await बजट.getCategories();
+              const categoryId = categories.find(c => c.name === categoryName)?.id;
+              if (!categoryId) throw new Error('Category not found for transaction');
+
+              await बजट.addTransaction(accountId, {
+                category_id: categoryId,
+                amount,
+                date,
+              });
+            },
+            {
+              accountName: ACCOUNT_NAME,
+              categoryName: OVERSPENT_EXPENSE_CAT,
+              amount: -5000, // Overspent by 50
+              date: monthUtils.currentDay(),
+            },
+          );
+        }
+
+        test('Overspending banner behavior in Envelope mode', async () => {
+          await setupOverspentCategory();
+          const budgetPage = await navigation.goToBudgetPage();
+
+          // 1. Verify the "Overspent categories" banner is visible and button says "Cover"
+          const overspentBanner = budgetPage.page.getByText(
+            /You have .* overspent categor(y|ies)/,
+          );
+          await expect(overspentBanner).toBeVisible();
+          const coverButton = budgetPage.page.getByRole('button', {
+            name: 'Cover',
+          });
+          await expect(coverButton).toBeVisible();
+
+          // 2. Click "Cover" and verify the category selection modal opens
+          await coverButton.click();
+          const categoryAutocompleteModal = budgetPage.page.getByRole('dialog');
+          await expect(categoryAutocompleteModal).toBeVisible();
+          await expect(
+            categoryAutocompleteModal.getByRole('heading', {
+              name: 'Cover overspending',
+            }),
+          ).toBeVisible();
+
+          // 3. In the modal, verify the overspent category is listed
+          const getCategoryItem = (name: string) =>
+            categoryAutocompleteModal.getByText(name, { exact: true });
+          await expect(getCategoryItem(OVERSPENT_EXPENSE_CAT)).toBeVisible();
+
+          // 4. Click on the overspent category and verify the "Cover from" modal opens
+          await getCategoryItem(OVERSPENT_EXPENSE_CAT).click();
+          const coverFromModal = budgetPage.page.getByRole('dialog');
+          await expect(coverFromModal).toBeVisible();
+          // The title of this modal should be the category name itself
+          await expect(
+            coverFromModal.getByRole('heading', { name: OVERSPENT_EXPENSE_CAT }),
+          ).toBeVisible();
+
+          await expect(page).toMatchThemeScreenshots();
+        });
+      });
     }
 
     if (budgetType === 'Tracking') {

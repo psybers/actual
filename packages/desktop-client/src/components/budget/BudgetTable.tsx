@@ -81,8 +81,21 @@ export function BudgetTable(props: BudgetTableProps) {
     onReorderCategory,
     onReorderGroup,
     onShowActivity,
-    onBudgetAction,
+    onBudgetAction: originalOnBudgetAction,
+    type: budgetType,
   } = props;
+
+  const conditionalOnBudgetAction = (
+    month: string,
+    actionType: string,
+    args: unknown,
+  ) => {
+    if (actionType === 'cover-overspending' && budgetType === 'tracking') {
+      // Do nothing for tracking budgets in this specific 'cover-overspending' case
+      return;
+    }
+    originalOnBudgetAction(month, actionType, args);
+  };
 
   const { grouped: categoryGroups = [] } = useCategories();
   const [collapsedGroupIds = [], setCollapsedGroupIdsPref] =
@@ -310,7 +323,7 @@ export function BudgetTable(props: BudgetTableProps) {
                 onDeleteGroup={onDeleteGroup}
                 onReorderCategory={_onReorderCategory}
                 onReorderGroup={_onReorderGroup}
-                onBudgetAction={onBudgetAction}
+                onBudgetAction={conditionalOnBudgetAction}
                 onShowActivity={onShowActivity}
                 onApplyBudgetTemplatesInGroup={onApplyBudgetTemplatesInGroup}
               />

@@ -98,13 +98,7 @@ export function CategoryAutocompleteModal({
                   showSplitOption={false}
                   onClose={close}
                   {...defaultAutocompleteProps}
-                  onSelect={value => {
-                    if (budgetType === 'tracking') {
-                      // Do nothing for tracking budgets
-                      return;
-                    }
-                    onSelect?.(value);
-                  }}
+                  onSelect={onSelect}
                   categoryGroups={categoryGroups}
                   showHiddenCategories={showHiddenCategories}
                   value={null}
